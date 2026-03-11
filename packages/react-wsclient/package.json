@@ -1,0 +1,27 @@
+{
+    "name": "react-wsclient",
+    "private": true,
+    "version": "0.0.0",
+    "type": "module",
+    "exports": {
+        ".": "./src/index.js"
+    },
+    "files": [
+        "./src/index.js"
+    ],
+    "scripts": {
+        "lint": "eslint ."
+    },
+    "dependencies": {
+        "react": "catalog:",
+        "react-dom": "catalog:"
+    },
+    "peerDependencies": {
+        "react": ">=19",
+        "react-dom": ">=19"
+    },
+    "devDependencies": {
+        "@types/react": "^19.2.7",
+        "@types/react-dom": "^19.2.3"
+    }
+}

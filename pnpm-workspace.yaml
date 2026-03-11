@@ -1,0 +1,10 @@
+packages:
+  - packages/app
+  - packages/react-wsclient
+  - packages/server
+
+catalog:
+  eslint: ^9.39.4
+  prettier: ^3.8.1
+  react: ^19.2.4
+  react-dom: ^19.2.4
