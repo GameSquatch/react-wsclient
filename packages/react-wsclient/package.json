@@ -3,6 +3,13 @@
     "private": false,
     "version": "1.0.0",
     "type": "module",
+    "keywords": [
+        "react",
+        "websocket",
+        "react websocket",
+        "ws",
+        "react ws"
+    ],
     "exports": {
         ".": "./src/index.js"
     },
