@@ -1,18 +1,9 @@
-# React + Vite
+# Demo Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the demo application that shows some basic features of the react-wsclient library.
 
-Currently, two official plugins are available:
+As of right now, there are three basic functions:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
-
-Note: This will impact Vite dev & build performances.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. Echo - what is sent gets received. Also displays any other messages received by the server.
+2. Filter - filters out messages using criteria. This allows you to call the hook but only receive message events when the filter criteria are met. This is akin to a "channel" in something like websocket.io.
+3. Blast - this shows what happens when the server sends many messages in rapid succession and how React is built to handle and batch updates in combination with that.

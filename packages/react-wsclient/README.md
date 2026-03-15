@@ -44,3 +44,11 @@ const App = () => {
   );
 };
 ```
+
+## Features
+
+- Multiple connections using multiple `WSClientProvider`s
+- Retry logic when connections from the server drop
+- Filtering, so calls to the hook from many places in your app are subscribed only to messages meeting the criteria you define in the filter
+- JSON parsing for messages containing JSON strings - you can also opt out of JSON parsing with one flag on the provider
+  - Parsing occurs once in the message event and is passed after parse to both the message and filter handler params of the hook.
