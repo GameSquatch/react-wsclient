@@ -37,6 +37,9 @@ const root = createRoot(/** @type {HTMLElement} */ (document.getElementById('roo
 
 worker
   .start({
+    serviceWorker: {
+      url: '/react-wsclient/mockServiceWorker.js',
+    },
     quiet: true,
   })
   .then(() => {
