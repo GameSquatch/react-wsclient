@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Disable until package is made on NPM
+.github/workflows/deploy_demo.yml
