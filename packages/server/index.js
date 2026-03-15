@@ -15,12 +15,23 @@ wss.on('connection', (ws) => {
         ws.send(JSON.stringify({ type: 'filtered', content: jsonData.content }));
         break;
       }
+      case 'blastme':
+        for (let i = 1; i <= 100; ++i) {
+          ws.send(JSON.stringify({ type: 'blasted', count: i }));
+        }
+        break;
       default: {
         ws.send(JSON.stringify({ type: 'echo', content: stringData }));
         break;
       }
     }
   });
+
+  ws.on('close', () => {
+    console.log(`Closing connection. ${wss.clients.size} clients connected.`);
+  });
+
+  console.log(`Connection made. ${wss.clients.size} clients connected`);
 });
 
 wss.on('listening', () => {

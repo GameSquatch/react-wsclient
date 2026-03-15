@@ -1,4 +1,5 @@
 import './App.css';
+import Blasted from './features/Blasted';
 import Echo from './features/Echo';
 import Filtered from './features/Filtered';
 
@@ -12,6 +13,7 @@ function App() {
     <>
       <Echo />
       <Filtered />
+      <Blasted />
     </>
   );
 }

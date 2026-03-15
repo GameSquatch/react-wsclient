@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { WSClient } from './WSClient';
 import { WSClientContext } from './WSClientContext';
+
+/** @type {Map<string, WSClient>} */
+// const clientMap = new Map();
 
 /**
  * @typedef {object} WSConfigProviderProps
@@ -14,20 +17,26 @@ import { WSClientContext } from './WSClientContext';
 
 /** @type {React.FC<WSConfigProviderProps>} */
 const WSClientProvider = ({ children, url, useJson = true, retry = true, retryInterval, maxRetries = 5 }) => {
-  const effectiveRetryInterval = retryInterval ?? ((n) => n * n * 1000);
-  /** @type {React.RefObject<WSClient>} */
-  const clientRef = useRef(null);
-  if (clientRef.current === null) {
-    clientRef.current = new WSClient({
+  const client = useMemo(() => {
+    const effectiveRetryInterval = retryInterval ?? ((n) => n * n * 1000);
+    return new WSClient({
       url,
       retry,
       retryInterval: effectiveRetryInterval,
       maxRetries,
       useJson,
     });
-  }
+  }, [url, retry, retryInterval, maxRetries, useJson]);
 
-  return <WSClientContext.Provider value={clientRef.current}>{children}</WSClientContext.Provider>;
+  useEffect(() => {
+    client.connect();
+
+    return () => {
+      client.disconnect();
+    };
+  }, [client]);
+
+  return <WSClientContext.Provider value={client}>{children}</WSClientContext.Provider>;
 };
 
 export default WSClientProvider;

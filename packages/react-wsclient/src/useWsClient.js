@@ -1,30 +1,15 @@
-import { use, useCallback, useEffect } from 'react';
+import { useCallback, useContext, useEffect, useRef } from 'react';
 import { WSClientContext } from './WSClientContext';
 
 /**
- * @template TMsg
- * @typedef {object} Options
- * @property {(data: TMsg) => void} onMessage
- * @property {(data: TMsg) => boolean} [filter]
- */
-
-/**
  * A hook that handles websocket connectivity
- * @template TMsg
- * @param {Options<TMsg>} options
+ * @param {import('./WSClient').Options} options
  */
-export const useWsClient = ({ onMessage, filter }) => {
+export const useWsClient = (options) => {
   const wsClient = useClientContext();
-
-  const processMessage = useCallback(
-    (/** @type {TMsg} */ data) => {
-      const willNotify = !filter || filter(data);
-      if (willNotify) {
-        onMessage(data);
-      }
-    },
-    [onMessage, filter],
-  );
+  const optionsRef = useRef(options);
+  // eslint-disable-next-line react-hooks/refs
+  optionsRef.current = options;
 
   /** @type {(data: string) => void} */
   const sendMessage = useCallback(
@@ -35,20 +20,25 @@ export const useWsClient = ({ onMessage, filter }) => {
   );
 
   useEffect(() => {
-    const unsubcribe = wsClient.subscribe({ onMessage: processMessage });
+    const unsubscribe = wsClient.subscribe(() => optionsRef.current);
 
     return () => {
-      unsubcribe();
+      unsubscribe();
     };
-  }, [processMessage, wsClient]);
+  }, [wsClient]);
 
-  return { sendMessage };
+  return {
+    sendMessage,
+    isConnected: wsClient.isConnected,
+    reconnect: () => wsClient.connect(),
+    disconnect: () => wsClient.disconnect(),
+  };
 };
 
 const useClientContext = () => {
-  const client = use(WSClientContext);
+  const client = useContext(WSClientContext);
   if (client === null) {
-    throw new Error('You must add a WSClientContext provider above useWSClient hook call.');
+    throw new Error('useWsClient must be used within a WSClientProvider.');
   }
   return client;
 };

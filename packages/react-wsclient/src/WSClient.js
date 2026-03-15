@@ -1,10 +1,14 @@
 /**
- * @typedef {object} Subscriber
+ * @typedef {object} Options
  * @property {(data: any) => void} onMessage
+ * @property {(data: any) => boolean} [filter]
+ * @property {(e: Event) => void} [onOpen] Optional event handler when the connection opens.
+ * @property {(e: CloseEvent, manualDisconnect: boolean) => void} [onClose]
  */
 
 export class WSClient {
-  /** @type {Subscriber[]} */
+  id = crypto.randomUUID();
+  /** @type {(() => Options)[]} */
   subs = [];
   /** @type {WebSocket | null} */
   connection = null;
@@ -18,6 +22,8 @@ export class WSClient {
   retryInterval;
   /** @type {boolean} */
   retry;
+  /** @type {boolean} */
+  manualDisconnect = false;
   retryCount = 0;
   /** @type {number} */
   maxRetries;
@@ -36,8 +42,6 @@ export class WSClient {
     this.retry = retry;
     this.retryInterval = retryInterval;
     this.maxRetries = maxRetries;
-    // this.connection = new WebSocket(url);
-    // this.#addListeners();
   }
 
   /**
@@ -54,31 +58,40 @@ export class WSClient {
 
   /**
    *
-   * @param {Subscriber} subscriber
+   * @param {() => Options} subscriber
    */
   subscribe(subscriber) {
-    const index = this.subs.push(subscriber) - 1;
+    this.subs.push(subscriber);
 
     return () => {
-      this.subs.splice(index, 1);
+      this.subs = this.subs.filter((sub) => sub !== subscriber);
     };
   }
 
   connect() {
+    this.manualDisconnect = false;
+    if (this.connection !== null) {
+      return;
+    }
+
     this.connection = new WebSocket(this.url);
     this.#addListeners(this.connection);
   }
 
   get isConnected() {
-    return this.connection !== null;
+    return this.connection?.readyState === WebSocket.OPEN;
   }
 
   disconnect() {
-    if (this.connection !== null) {
-      this.connection.onclose = () => {
-        console.warn("Websocket closing due to strict mode's double run.");
-      };
-      this.connection.close();
+    this.manualDisconnect = true;
+
+    if (this.connection) {
+      this.connection?.close();
+
+      this.connection.onopen = null;
+      this.connection.onmessage = null;
+      this.connection.onclose = null;
+      this.connection.onerror = null;
       this.connection = null;
     }
   }
@@ -88,8 +101,10 @@ export class WSClient {
    * @param {WebSocket} newConnection
    */
   #addListeners(newConnection) {
-    newConnection.onopen = () => {
+    newConnection.onopen = (e) => {
+      this.#notifyOpen(e);
       this.retryCount = 0;
+
       let msg = this.messageQueue.shift();
       while (msg !== undefined) {
         this.connection?.send(msg);
@@ -98,18 +113,35 @@ export class WSClient {
     };
 
     newConnection.onmessage = (/** @type {MessageEvent<string>} */ e) => {
-      const message = this.useJson ? JSON.parse(e.data) : e.data;
-      this.subs.forEach((sub) => {
-        sub.onMessage(message);
+      let message;
+      if (this.useJson) {
+        try {
+          message = JSON.parse(e.data);
+        } catch (err) {
+          console.error('Failed to parse JSON message when useJson flag true.', err, e.data);
+          return;
+        }
+      } else {
+        message = e.data;
+      }
+
+      this.subs.forEach((getSub) => {
+        const sub = getSub();
+        if (!sub.filter || sub.filter(message)) {
+          sub.onMessage(message);
+        }
       });
     };
 
-    newConnection.onclose = () => {
-      console.warn(`WebSocket connection is closing.`);
+    newConnection.onclose = (e) => {
+      this.#notifyClose(e, this.manualDisconnect);
+      if (this.manualDisconnect) {
+        return;
+      }
+
       if (this.retry && this.retryCount < this.maxRetries) {
         this.retryCount += 1;
         const interval = this.retryInterval(this.retryCount);
-        console.log(`Will retry connection in ${interval} ms`);
 
         window.setTimeout(() => {
           this.connection = new WebSocket(this.url);
@@ -121,5 +153,26 @@ export class WSClient {
     newConnection.onerror = (e) => {
       console.error(`Error with websocket connection: `, e);
     };
+  }
+
+  /**
+   *
+   * @param {Event} e
+   */
+  #notifyOpen(e) {
+    this.subs.forEach((getSub) => {
+      getSub().onOpen?.(e);
+    });
+  }
+
+  /**
+   *
+   * @param {CloseEvent} e
+   * @param {boolean} manualDisconnect
+   */
+  #notifyClose(e, manualDisconnect) {
+    this.subs.forEach((getSub) => {
+      getSub().onClose?.(e, manualDisconnect);
+    });
   }
 }
