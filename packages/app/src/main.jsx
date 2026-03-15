@@ -34,11 +34,13 @@ const worker = setupWorker(
 );
 
 const root = createRoot(/** @type {HTMLElement} */ (document.getElementById('root')));
+// @ts-ignore
+const workerBase = import.meta.env.PROD ? '/react-wsclient' : '';
 
 worker
   .start({
     serviceWorker: {
-      url: '/react-wsclient/mockServiceWorker.js',
+      url: `${workerBase}/mockServiceWorker.js`,
     },
     quiet: true,
   })
