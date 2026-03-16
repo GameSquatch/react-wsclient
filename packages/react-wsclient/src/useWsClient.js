@@ -1,3 +1,5 @@
+'use client';
+
 import { useCallback, useContext, useEffect, useRef } from 'react';
 import { WSClientContext } from './WSClientContext';
 

@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useMemo } from 'react';
 import { WSClient } from './WSClient';
 import { WSClientContext } from './WSClientContext';

@@ -1,7 +1,7 @@
 {
     "name": "react-wsclient",
     "private": false,
-    "version": "1.0.1",
+    "version": "1.0.2",
     "type": "module",
     "keywords": [
         "react",
@@ -19,13 +19,9 @@
     "scripts": {
         "lint": "eslint ."
     },
-    "dependencies": {
-        "react": "catalog:",
-        "react-dom": "catalog:"
-    },
     "peerDependencies": {
-        "react": ">=19",
-        "react-dom": ">=19"
+        "react": ">=16.8",
+        "react-dom": ">=16.8"
     },
     "devDependencies": {
         "@types/react": "^19.2.7",
