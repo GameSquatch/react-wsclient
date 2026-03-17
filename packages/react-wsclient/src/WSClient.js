@@ -1,9 +1,9 @@
 /**
  * @typedef {object} Options
- * @property {(data: any) => void} onMessage
- * @property {(data: any) => boolean} [filter]
- * @property {(e: Event) => void} [onOpen] Optional event handler when the connection opens.
- * @property {(e: CloseEvent, manualDisconnect: boolean) => void} [onClose]
+ * @property {(data: any) => void} [onMessage] Callback function that is called when a message is received from the server. The message is passed as an argument to the callback.
+ * @property {(data: any) => boolean} [filter] Optional function that filters incoming messages. Called before onMessage, if provided. If it returns false, the message is not passed to onMessage.
+ * @property {(e: Event) => void} [onOpen] Optional callback invoked when the connection opens.
+ * @property {(e: CloseEvent, manualDisconnect: boolean) => void} [onClose] Optional callback invoked when the connection closes. The second argument indicates whether the disconnection was initiated manually via the disconnect method.
  */
 
 export class WSClient {
@@ -128,7 +128,7 @@ export class WSClient {
       this.subs.forEach((getSub) => {
         const sub = getSub();
         if (!sub.filter || sub.filter(message)) {
-          sub.onMessage(message);
+          sub.onMessage?.(message);
         }
       });
     };

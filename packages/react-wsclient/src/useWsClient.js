@@ -2,10 +2,20 @@
 
 import { useCallback, useContext, useEffect, useRef } from 'react';
 import { WSClientContext } from './WSClientContext';
+import { WSClient } from './WSClient';
 
 /**
- * A hook that handles websocket connectivity
+ * @typedef {object} UseWsClientReturn
+ * @property {(data: string) => void} sendMessage A stable function that sends a string message over the websocket.
+ * @property {() => boolean} isConnected A getter that returns whether the client is currently connected.
+ * @property {() => void} reconnect A function to reconnect to the url given to the provider. If already connected, this will do nothing.
+ * @property {() => void} disconnect A function to manually disconnect without triggering the retry process. This will still trigger the `onClose` callback.
+ */
+
+/**
+ *
  * @param {import('./WSClient').Options} options
+ * @returns {UseWsClientReturn}
  */
 export const useWsClient = (options) => {
   const wsClient = useClientContext();
@@ -13,12 +23,11 @@ export const useWsClient = (options) => {
   // eslint-disable-next-line react-hooks/refs
   optionsRef.current = options;
 
-  /** @type {(data: string) => void} */
   const sendMessage = useCallback(
-    (data) => {
+    (/** @type {string} */ data) => {
       wsClient.send(data);
     },
-    [wsClient],
+    [wsClient]
   );
 
   useEffect(() => {
@@ -31,12 +40,13 @@ export const useWsClient = (options) => {
 
   return {
     sendMessage,
-    isConnected: wsClient.isConnected,
+    isConnected: () => wsClient.isConnected,
     reconnect: () => wsClient.connect(),
-    disconnect: () => wsClient.disconnect(),
+    disconnect: () => wsClient.disconnect()
   };
 };
 
+/** @type {() => NonNullable<WSClient>} */
 const useClientContext = () => {
   const client = useContext(WSClientContext);
   if (client === null) {

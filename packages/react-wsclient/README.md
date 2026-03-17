@@ -4,7 +4,7 @@ An easy and flexible way to work with websockets in React. No forced `flushSync`
 
 See a [demo here](https://gamesquatch.github.io/react-wsclient/) and [demo source code here](https://github.com/GameSquatch/react-wsclient/tree/main/packages/app).
 
-The changelog can be found[here](https://github.com/GameSquatch/react-wsclient/blob/main/packages/react-wsclient/CHANGELOG.md).
+The changelog can be found [here](https://github.com/GameSquatch/react-wsclient/blob/main/packages/react-wsclient/CHANGELOG.md).
 
 ## Why?
 
@@ -27,7 +27,7 @@ createRoot(/** @type {HTMLElement} */ (document.getElementById('root'))).render(
     <WSClientProvider url="ws://localhost:8080">
       <App />
     </WSClientProvider>
-  </StrictMode>,
+  </StrictMode>
 );
 ```
 
@@ -40,7 +40,7 @@ const App = () => {
   const { sendMessage } = useWsClient({
     onMessage: (data) => {
       setResponse(data.content);
-    },
+    }
   });
 
   const send = () => {
@@ -116,7 +116,7 @@ useWsClient({
   },
   filter: (data) => {
     return data.room === 'channel-abc';
-  },
+  }
 });
 ```
 
@@ -165,7 +165,7 @@ const ChatThread = () => {
 
       // Do this instead
       setMessages((currentMessages) => [...currentMessages, chatMessage]);
-    },
+    }
   });
 
   return (

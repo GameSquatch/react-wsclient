@@ -4,20 +4,20 @@ import { useEffect, useMemo } from 'react';
 import { WSClient } from './WSClient';
 import { WSClientContext } from './WSClientContext';
 
-/** @type {Map<string, WSClient>} */
-// const clientMap = new Map();
-
 /**
  * @typedef {object} WSConfigProviderProps
  * @property {React.ReactNode} children
- * @property {string} url
- * @property {boolean} [useJson=true]
- * @property {boolean} [retry=true]
- * @property {(retryCount: number) => number} [retryInterval]
- * @property {number} [maxRetries=5]
+ * @property {string} url The WebSocket server URL to connect to.
+ * @property {boolean} [useJson=true] Whether to automatically `JSON.parse` incoming messages. If true, the client will attempt to parse incoming messages as JSON. If false, messages will be received as raw strings.
+ * @property {boolean} [retry=true] Whether to automatically retry the connection if it is lost.
+ * @property {(retryCount: number) => number} [retryInterval] A function that determines the interval between retry attempts.
+ * @property {number} [maxRetries=5] The maximum number of times to attempt to reconnect.
  */
 
-/** @type {React.FC<WSConfigProviderProps>} */
+/**
+ * A React context provider that configures a WebSocket client for one or more `useWsClient` consumers beneath it.
+ * @type {React.FC<WSConfigProviderProps>}
+ * */
 const WSClientProvider = ({ children, url, useJson = true, retry = true, retryInterval, maxRetries = 5 }) => {
   const client = useMemo(() => {
     const effectiveRetryInterval = retryInterval ?? ((n) => n * n * 1000);
@@ -26,7 +26,7 @@ const WSClientProvider = ({ children, url, useJson = true, retry = true, retryIn
       retry,
       retryInterval: effectiveRetryInterval,
       maxRetries,
-      useJson,
+      useJson
     });
   }, [url, retry, retryInterval, maxRetries, useJson]);
 
