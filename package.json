@@ -4,6 +4,9 @@
     "description": "monorepo for the react wsclient library",
     "private": true,
     "type": "module",
+    "scripts": {
+        "publish": "pnpm --filter \"./packages/react-wsclient\" publish"
+    },
     "devDependencies": {
         "@eslint/js": "^9.39.4",
         "eslint": "catalog:",

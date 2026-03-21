@@ -35,7 +35,7 @@ createRoot(/** @type {HTMLElement} */ (document.getElementById('root'))).render(
 
 ```jsx
 const App = () => {
-  const [message, setMessage] = useState('');
+  const [response, setResponse] = useState('');
 
   const { sendMessage } = useWsClient({
     onMessage: (data) => {
@@ -58,12 +58,11 @@ const App = () => {
 
 ## Features
 
-- Works on React 16.8 and higher
 - Multiple connections possible using multiple `WSClientProvider`s
 - Retry logic when connections from the server drop
-- Filtering, so calls to the hook from many places in your app are subscribed only to messages meeting the criteria you define in the filter
+- Filtering prop allows per-hook message "channels"
 - JSON parsing for messages containing JSON strings - you can also opt out of JSON parsing with one flag on the provider
-  - Parsing occurs once in the message event and is passed after parse to both the message and filter handler params of the hook.
+- Works on React 16.8 and higher
 
 ## API
 
@@ -73,86 +72,84 @@ The provider is what actually creates the connection through the WebSocket Web A
 
 #### Props
 
-**url** (required):
+- **url** (required):
 
-The full ws or wss url to your websocket server. For example, `ws://localhost:8080`.
+  The full ws or wss url to your websocket server. For example, `ws://localhost:8080`.
 
-**useJson** (default: `true`):
+- **useJson** (default: `true`):
 
-The connection will attempt to parse messages using JSON by default. To opt out of this parsing, pass `false` to this prop.
+  The connection will attempt to parse messages using JSON by default. To opt out of this parsing, pass `false` to this prop.
 
-**retry** (default: `true`):
+- **retry** (default: `true`):
 
-When connections are dropped unexpectedly by the server, the provider will attempt to retry the connection with exponential back-off by default. If you don't want retries, pass `false` to this prop.
+  When connections are dropped unexpectedly by the server, the provider will attempt to retry the connection with exponential back-off by default. If you don't want retries, pass `false` to this prop.
 
-**retryInterval** (default: `(n) => n * n * 1000`):
+- **retryInterval** (default: `(n) => n * n * 1000`):
 
-This prop is a function that receives the current attempt count as a number (e.g. the 3rd attempt will be 3) and returns the number of milliseconds to wait before the next connection attempt. This defaults to a function resulting in n-squared seconds, so the 3rd attempt will wait 9 seconds before connecting. When `retry` is false, this will do nothing.
+  This prop is a function that receives the current attempt count as a number (e.g. the 3rd attempt will be 3) and returns the number of milliseconds to wait before the next connection attempt. This defaults to a function resulting in n-squared seconds, so the 3rd attempt will wait 9 seconds before connecting. When `retry` is false, this will do nothing.
 
-**maxRetries** (default: `5`):
+- **maxRetries** (default: `5`):
 
-The max number of times the provider will attempt to retry a dropped connection.
+  The max number of times the provider will attempt to retry a dropped connection.
 
 ### useWsClient
 
-This hook will subscribe to the WS client provided by the `WSClientProvider` and allows you to define listeners for events like messages. It also returns some useful utilities like a send function for sending messages.
+This hook will subscribe to the WS client provided by the `WSClientProvider` and allows you to define listeners for events like messages. It also returns some useful utilities like a send function for sending messages. The props passed to this hook are updated with a ref internally, so all events that occur on the websocket connection will have the most recent references to callbacks, so it's quite alright that you don't memoize those callbacks before passing them to the hook.
 
 #### Props
 
-**onMessage**:
+- **onMessage** (optional) `(data) => void`:
 
-This callback will be invoked any time the websocket receives a message. If `filter` is also defined, it will only be called when the filter returns `true`. The callback receives the data as its only argument and will be JSON if the provider has `useJson` set to true.
+  This callback will be invoked any time the websocket receives a message. If `filter` is also defined, it will only be called when the filter returns `true`. The callback receives the data as its only argument and will be JSON if the provider has `useJson` set to true.
 
-**filter** (optional):
+- **filter** (optional) `(data) => boolean`:
 
-The filter callback can be used to limit when the `onMessage` callback is invoked. It receives the data as its only argument and should return `true` when you want to trigger `onMessage`. The data argument will be a JS object if the provider has `useJson` set to `true`.
+  The filter callback can be used to limit when the `onMessage` callback is invoked. It receives the data as its only argument and should return `true` when you want to trigger `onMessage`. The data argument will be a JS object if the provider has `useJson` set to `true`.
 
-Example:
+  Example:
 
-```ts
-useWsClient({
-  onMessage: (data) => {
-    console.log('Received message from channel "channel-abc".');
-  },
-  filter: (data) => {
-    return data.room === 'channel-abc';
-  }
-});
-```
+  ```ts
+  useWsClient({
+    onMessage: (data) => {
+      console.log('Received message from channel "channel-abc".');
+    },
+    filter: (data) => {
+      return data.room === 'channel-abc';
+    }
+  });
+  ```
 
-**onOpen** (optional):
+- **onOpen** (optional) `(event) => void`:
 
-Callback invoked when the WebSocket ready state is in `OPEN`. It receives the raw `Event` from `WebSocket.onopen` as its only argument.
+  Callback invoked when the WebSocket ready state is in `OPEN`. It receives the raw `Event` from `WebSocket.onopen` as its only argument.
 
-**onClose** (optional):
+- **onClose** (optional) `(event) => void`:
 
-Callback invoked when the WebSocket is closed. It receives the raw `CloseEvent` from `WebSocket.onclose` and a flag that indicates whether it was manually closed by the `disconnect` function returned from this hook.
+  Callback invoked when the WebSocket is closed. It receives the raw `CloseEvent` from `WebSocket.onclose` and a flag that indicates whether it was manually closed by the `disconnect` function returned from this hook.
 
 #### Returns
 
 An object containing:
 
-**sendMessage**:
+- **sendMessage** `(msg: string) => void`:
 
-A function that takes a string as an argument and calls `WebSocket.send` with that string. If the connection is not yet open, this will queue the message up that will be sent when the connection does open.
+  A function that takes a string as an argument and calls `WebSocket.send` with that string. If the connection is not yet open, this will queue the message up that will be sent when the connection does open.
 
-**isConnected**:
+- **isConnected** `() => boolean`:
 
-A getter property that checks the ready state of the WebSocket and returns `true` when that state is `OPEN`.
+  A getter function that checks the ready state of the WebSocket and returns `true` when that state is `OPEN`. This function returns the current connection state - i.e. it is not reactive.
 
-**reconnect**:
+- **reconnect** `() => void`:
 
-A function with no arguments that will reconnect the WebSocket to the url provided to the provider's `url` prop. If the connection is already open, this will do nothing.
+  A function with no arguments that will reconnect the WebSocket to the url provided to the provider's `url` prop. If the connection is already open, this will do nothing.
 
-**disconnect**:
+- **disconnect** `() => void`:
 
-A function with no arguments that will close the connection without attempting retries. It will still call the `onClose` callback provided to this hook but will pass `true` to the second argument.
+  A function with no arguments that will close the connection without attempting retries. It will still call the `onClose` callback provided to this hook but will pass `true` to the second argument.
 
-## Sync'ing with React
+## Batch Safety
 
-With WebSocket events happening through the Web APIs, React has no control over synchronizing those events with its rendering system. The only place that React has visibility over this is when you set state in any of the callbacks provided to the `useWsClient` hook. Other websocket libraries will "solve" this by calling `flushSync` with every message event, which will force react to update all state and dependencies touched by any state you set in the message handler. This means you will have the most recent values of state by the time the next message is received and handled, but it also means you're triggering React to completely render with each event, which can have negative performance impacts if your client is receiving many messages in rapid succession from the server.
-
-This library leaves that part up to you. Fortunately, most state updates received in this manner only care about the message that was last received. The only time you would need `flushSync` is if you care about each message in the sequence for display purposes (like a chat thread). You still don't need `flushSync` in those cases if you use React's built-in state setter functions, which allow batching of state while maintaining the sequence of values. For the chat scenario, here is an example of what I mean:
+Websocket message events can occur very rapidly, and React's state update system [uses batching](https://react.dev/learn/queueing-a-series-of-state-updates). When using this websocket library, you always have to keep this in mind, since it does not force the use of `flushSync`, which ignores the batching system and makes state updates synchronous. What this means for you is that you have to be aware of how you update states within the `onMessage` callback. All you have to know is that when you set state in this callback, that state may not be updated by the time the next `onMessage` call occurs. You can largely ignore this by using a function in the state setters for React, or the equivalent in your state management library of choice:
 
 ```jsx
 const ChatThread = () => {
@@ -171,11 +168,11 @@ const ChatThread = () => {
   return (
     <div className="chat-thread">
       {messages.map((message) => (
-        <MessageBubble messageData={message} />
+        <MessageBubble key={message.id} messageData={message} />
       ))}
     </div>
   );
 };
 ```
 
-By passing a function to the state setter, React can properly batch rapid events while processing each message received, even in rapid succession. Then rendering will be optimized to happen only after state updates are complete. If I had forced the use of `flushSync`, rendering would be forced happen after each state update. You can still opt into that behavior, if you want it, by calling it yourself. In this case the difference would be that if two or more messages were received near simultaneously, `flushSync` would display them one at a time, whereas using the state setter with a function would display that batch of messages all at once in one render pass.
+The only other time you'll have to be aware of this nuance is if you use state values outside of setters, like in other calculations or conditional statements. In those cases, you may have to use `flushSync` when updating state in the `onMessage` callback. If you only need the most recent message in your state, you are completely fine to use state setters even without the function-based argument that React uses.

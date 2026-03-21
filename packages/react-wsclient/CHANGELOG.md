@@ -1,5 +1,9 @@
 ## Change Log
 
+## v1.1.1
+
+- Update README documentation
+
 ## v1.1.0
 
 ### Breaking
