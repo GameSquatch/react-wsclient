@@ -6,6 +6,8 @@ import { WSClientProvider } from 'react-wsclient';
 import { setupWorker } from 'msw/browser';
 import { ws } from 'msw';
 
+const loopCount = 2_000;
+
 const wsApi = ws.link('ws://localhost:8080');
 const worker = setupWorker(
   wsApi.addEventListener('connection', ({ client }) => {
@@ -20,17 +22,22 @@ const worker = setupWorker(
           break;
         }
         case 'blastme':
-          for (let i = 1; i <= 100; ++i) {
+          for (let i = 1; i <= loopCount; ++i) {
             client.send(JSON.stringify({ type: 'blasted', count: i }));
           }
+          setTimeout(() => {
+            for (let i = 1; i <= loopCount; ++i) {
+              client.send(JSON.stringify({ type: 'blasted', count: loopCount + i }));
+            }
+          }, 200);
           break;
         default: {
-          client.send(JSON.stringify({ type: 'echo', content: stringData }));
+          client.send(stringData);
           break;
         }
       }
     });
-  }),
+  })
 );
 
 const root = createRoot(/** @type {HTMLElement} */ (document.getElementById('root')));
@@ -40,9 +47,9 @@ const workerBase = import.meta.env.PROD ? '/react-wsclient' : '';
 worker
   .start({
     serviceWorker: {
-      url: `${workerBase}/mockServiceWorker.js`,
+      url: `${workerBase}/mockServiceWorker.js`
     },
-    quiet: true,
+    quiet: true
   })
   .then(() => {
     root.render(
@@ -50,6 +57,6 @@ worker
         <WSClientProvider url="ws://localhost:8080">
           <App />
         </WSClientProvider>
-      </StrictMode>,
+      </StrictMode>
     );
   });

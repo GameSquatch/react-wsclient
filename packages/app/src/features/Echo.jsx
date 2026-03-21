@@ -9,7 +9,7 @@ const Echo = () => {
   const { sendMessage } = useWsClient({
     onMessage: (data) => {
       setResponse(data.content);
-    },
+    }
   });
 
   const send = () => {
@@ -22,7 +22,7 @@ const Echo = () => {
       <p>Receives all messages</p>
       <input type="text" value={message} onChange={(e) => setMessage(e.target.value)} />
       <button onClick={send}>Send</button>
-      <span>Response: {response}</span>
+      <span className="msg-resp">Content field: {response}</span>
     </MsgBox>
   );
 };

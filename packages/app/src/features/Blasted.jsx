@@ -1,4 +1,5 @@
-import { useState } from 'react';
+/* eslint-disable react-hooks/refs */
+import { useRef, useState } from 'react';
 import { useWsClient } from 'react-wsclient';
 import MsgBox from '../components/MsgBox';
 
@@ -9,27 +10,41 @@ import MsgBox from '../components/MsgBox';
  */
 const Blasted = () => {
   const [response, setResponse] = useState(0);
+  /** @type {import('react').RefObject<Set<number>>} */
+  const renderedCountsRef = useRef(new Set());
 
   const { sendMessage } = useWsClient({
-    onMessage: (/** @type {JsonResponse} */ data) => {
-      setResponse(data.count);
+    onMessage: () => {
+      setResponse((c) => {
+        // Uncomment to see the message events running
+        // if (c <= 100) {
+        //   console.log(c);
+        // }
+        return c + 1;
+      });
     },
-    filter: (/** @type {JsonResponse} */ data) => data.type === 'blasted',
+    filter: (/** @type {JsonResponse} */ data) => data.type === 'blasted'
   });
 
-  // Note how batching of state updates won't log all 100 updates
-  console.log(response);
+  renderedCountsRef.current.add(response);
 
   const sendJson = () => {
     setResponse(0);
+    renderedCountsRef.current.clear();
     sendMessage(JSON.stringify({ type: 'blastme' }));
   };
 
   return (
     <MsgBox>
-      <p>Will receive an onslaught of messages for 2 seconds</p>
+      <p>
+        Will receive thousands of messages as fast as the WS can send them. Note how even though we set the state
+        thousands of times, it only renders twice or so.
+      </p>
       <button onClick={sendJson}>Blast Me</button>
-      <span>Content field: {response}</span>
+      <span className="msg-resp">Content field: {response}</span>
+      <div>
+        Counts seen during render: <span>{[...renderedCountsRef.current].join(',')}</span>
+      </div>
     </MsgBox>
   );
 };
