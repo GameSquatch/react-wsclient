@@ -1,12 +1,13 @@
 {
     "name": "react-wsclient",
     "private": false,
-    "version": "1.1.1",
+    "version": "1.1.2",
     "type": "module",
     "description": "A batch-friendly performance-minded library for connecting to websockets in React.",
     "author": {
         "name": "zsquatch",
-        "email": "broncoscorpio@gmail.com"
+        "email": "broncoscorpio@gmail.com",
+        "url": "https://gamesquatch.github.io/"
     },
     "keywords": [
         "react",
@@ -19,6 +20,7 @@
         "type": "git",
         "url": "https://github.com/GameSquatch/react-wsclient"
     },
+    "homepage": "https://github.com/GameSquatch/react-wsclient/blob/main/packages/react-wsclient/README.md",
     "exports": {
         ".": "./src/index.js"
     },
