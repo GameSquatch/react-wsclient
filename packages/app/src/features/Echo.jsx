@@ -13,7 +13,7 @@ const Echo = () => {
   });
 
   const send = () => {
-    sendMessage(JSON.stringify({ type: 'echo', content: message }));
+    sendMessage({ type: 'echo', content: message });
     setMessage('');
   };
 

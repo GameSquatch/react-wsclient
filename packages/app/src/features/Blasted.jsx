@@ -31,7 +31,7 @@ const Blasted = () => {
   const sendJson = () => {
     setResponse(0);
     renderedCountsRef.current.clear();
-    sendMessage(JSON.stringify({ type: 'blastme' }));
+    sendMessage({ type: 'blastme' });
   };
 
   return (

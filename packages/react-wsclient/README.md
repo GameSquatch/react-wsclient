@@ -44,7 +44,7 @@ const App = () => {
   });
 
   const send = () => {
-    sendMessage('Hello websocket!');
+    sendMessage({ content: 'Hello websocket!' });
   };
 
   return (
@@ -131,9 +131,9 @@ This hook will subscribe to the WS client provided by the `WSClientProvider` and
 
 An object containing:
 
-- **sendMessage** `(msg: string) => void`:
+- **sendMessage** `(msg: string | object) => void`:
 
-  A function that takes a string as an argument and calls `WebSocket.send` with that string. If the connection is not yet open, this will queue the message up that will be sent when the connection does open.
+  A function that takes a string or [`JSON.stringify`-supported object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#description) as an argument and calls `WebSocket.send` with that data. If the connection is not yet open, this will queue the message up that will be sent when the connection does open.
 
 - **isConnected** `() => boolean`:
 

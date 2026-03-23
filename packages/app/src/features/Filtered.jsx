@@ -20,7 +20,7 @@ const Filtered = () => {
   });
 
   const sendJson = () => {
-    sendMessage(JSON.stringify({ type: 'filtered', content: message }));
+    sendMessage({ type: 'filtered', content: message });
     setMessage('');
   };
 

@@ -1,5 +1,9 @@
 ## Change Log
 
+## v1.1.2
+
+- Add object support to `sendMessage` returned from `useWsClient` hook
+
 ## v1.1.1
 
 - Update README documentation

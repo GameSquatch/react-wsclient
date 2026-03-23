@@ -107,7 +107,7 @@ export class WSClient {
 
       let msg = this.messageQueue.shift();
       while (msg !== undefined) {
-        this.connection?.send(msg);
+        this.send(msg);
         msg = this.messageQueue.shift();
       }
     };
