@@ -22,6 +22,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build demo site
         run: pnpm --filter "./packages/app" run build
+      - name: Run Tests
+        run: pnpm --filter "./packages/react-wsclient" run test
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

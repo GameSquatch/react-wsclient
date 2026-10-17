@@ -28,7 +28,7 @@ export const useWsClient = (options) => {
       const stringData = typeof data === 'string' ? data : JSON.stringify(data);
       wsClient.send(stringData);
     },
-    [wsClient]
+    [wsClient],
   );
 
   useEffect(() => {
@@ -43,7 +43,7 @@ export const useWsClient = (options) => {
     sendMessage,
     isConnected: () => wsClient.isConnected,
     reconnect: () => wsClient.connect(),
-    disconnect: () => wsClient.disconnect()
+    disconnect: () => wsClient.disconnectManually(),
   };
 };
 
