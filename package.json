@@ -8,20 +8,14 @@
         "publish": "pnpm --filter \"./packages/react-wsclient\" publish"
     },
     "devDependencies": {
-        "@eslint/js": "^9.39.4",
+        "@eslint/js": "^10.0.1",
         "eslint": "catalog:",
-        "eslint-plugin-react-hooks": "^7.0.1",
-        "eslint-plugin-react-refresh": "^0.5.2",
-        "globals": "^16.5.0",
+        "eslint-plugin-react-hooks": "catalog:",
+        "eslint-plugin-react-refresh": "catalog:",
+        "globals": "catalog:",
         "prettier": "catalog:"
     },
     "engines": {
-        "pnpm": ">=10.0.0"
-    },
-    "pnpm": {
-        "onlyBuiltDependencies": [
-            "esbuild",
-            "msw"
-        ]
+        "pnpm": ">=12.0.0"
     }
 }
