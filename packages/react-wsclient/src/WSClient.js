@@ -83,8 +83,15 @@ export class WSClient {
   }
 
   disconnect() {
-    this.manualDisconnect = true;
+    this.#disconnector();
+  }
 
+  disconnectManually() {
+    this.manualDisconnect = true;
+    this.#disconnector();
+  }
+
+  #disconnector() {
     if (this.connection) {
       this.connection?.close();
 

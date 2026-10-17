@@ -1,5 +1,9 @@
 ## Change Log
 
+## v1.1.3
+
+- Add unit tests for the websocket client and use client hook
+
 ## v1.1.2
 
 - Add object support to `sendMessage` returned from `useWsClient` hook
