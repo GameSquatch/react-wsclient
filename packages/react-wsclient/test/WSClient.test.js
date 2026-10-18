@@ -1,9 +1,23 @@
 import { describe, expect, test } from 'vitest';
 import { WSClient } from '../src/WSClient';
 import { vi } from 'vitest';
-import { WebSocketMock } from './WebSocketMock';
+import { ws } from 'msw';
+import { setupServer } from 'msw/node';
 
-globalThis.WebSocket = WebSocketMock;
+const wsApi = ws.link('ws://test.com');
+
+const server = setupServer(
+  wsApi.addEventListener('connection', ({ client }) => {
+    client.addEventListener('message', (e) => {
+      const data = e.data;
+      client.send(data);
+    });
+  }),
+);
+
+beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
 
 describe('Direct WSClient Interface', () => {
   test('WSClient constructs', () => {
@@ -17,8 +31,7 @@ describe('Direct WSClient Interface', () => {
 
     client.connect();
 
-    expect(client.connection?.url).toBe('ws://test.com');
-    expect(client.connection).not.toBeNull();
+    expect(client.connection.readyState).not.toBe(WebSocket.CLOSED);
   });
 
   test('WSClient send when closed adds to queue', () => {
@@ -30,9 +43,6 @@ describe('Direct WSClient Interface', () => {
       maxRetries: 3,
     });
 
-    client.connect();
-
-    expect(client.connection?.readyState).toBe(WebSocketMock.CLOSED);
     expect(client.messageQueue.length).toBe(0);
     client.send('Hello there');
     expect(client.messageQueue.length).toBe(1);
@@ -47,16 +57,17 @@ describe('Direct WSClient Interface', () => {
       maxRetries: 3,
     });
 
-    client.connect();
-
-    expect(client.connection?.readyState).toBe(WebSocketMock.CLOSED);
     expect(client.messageQueue.length).toBe(0);
     client.send('Hello there');
     expect(client.messageQueue.length).toBe(1);
 
-    client.connection.readyState = WebSocketMock.OPEN;
-    client.connection?.onopen?.(new Event('Opening mock'));
-    expect(client.connection?.msg).toBe('Hello there');
+    client.subscribe(() => ({
+      onMessage: (data) => {
+        expect(data).toBe('Hello there');
+      },
+    }));
+
+    client.connect();
   });
 
   test('Subscriber receives open event', () => {
@@ -68,16 +79,13 @@ describe('Direct WSClient Interface', () => {
       maxRetries: 3,
     });
 
-    client.connect();
-
     client.subscribe(() => ({
       onOpen: (e) => {
-        expect(e.type).toBe('mockopen');
+        expect(e.type).toBe('open');
       },
     }));
 
-    client.connection.readyState = WebSocketMock.OPEN;
-    client.connection?.onopen?.(new Event('mockopen'));
+    client.connect();
   });
 
   test('Subscriber receives string message', () => {
@@ -97,13 +105,7 @@ describe('Direct WSClient Interface', () => {
       },
     }));
 
-    client.connection.readyState = WebSocketMock.OPEN;
-    client.connection?.onopen?.(new Event('Opening mock'));
-    client.connection?.onmessage?.(
-      new MessageEvent('message', {
-        data: 'Hello there',
-      }),
-    );
+    client.send('Hello there');
   });
 
   test('Subscriber receives filtered message', () => {
@@ -124,16 +126,10 @@ describe('Direct WSClient Interface', () => {
       },
     }));
 
-    client.connection.readyState = WebSocketMock.OPEN;
-    client.connection?.onopen?.(new Event('Opening mock'));
-    client.connection?.onmessage?.(
-      new MessageEvent('message', {
-        data: 'Hello there',
-      }),
-    );
+    client.send('Hello there');
   });
 
-  test('Subscriber does not receive filtered out', () => {
+  test('Subscriber does not receive filtered out message', () => {
     const client = new WSClient({
       url: 'ws://test.com',
       useJson: false,
@@ -156,18 +152,8 @@ describe('Direct WSClient Interface', () => {
       },
     }));
 
-    client.connection.readyState = WebSocketMock.OPEN;
-    client.connection?.onopen?.(new Event('Opening mock'));
-    client.connection?.onmessage?.(
-      new MessageEvent('message', {
-        data: 'Filtered out',
-      }),
-    );
-    client.connection?.onmessage?.(
-      new MessageEvent('message', {
-        data: 'Hello there',
-      }),
-    );
+    client.send('Filtered out');
+    client.send('Hello there');
   });
 
   test('Subscriber receives parsed JSON', () => {
@@ -187,16 +173,10 @@ describe('Direct WSClient Interface', () => {
       },
     }));
 
-    client.connection.readyState = WebSocketMock.OPEN;
-    client.connection?.onopen?.(new Event('Opening mock'));
-    client.connection?.onmessage?.(
-      new MessageEvent('message', {
-        data: JSON.stringify({ msg: 'Hello there' }),
-      }),
-    );
+    client.send(JSON.stringify({ msg: 'Hello there' }));
   });
 
-  test('Subscriber receives close event', () => {
+  test('Subscriber disconnect notifies close', () => {
     const client = new WSClient({
       url: 'ws://test.com',
       useJson: false,
@@ -213,32 +193,6 @@ describe('Direct WSClient Interface', () => {
       },
     }));
 
-    client.connection.readyState = WebSocketMock.OPEN;
-    client.connection?.onopen?.(new Event('mockopen'));
-    client.connection.readyState = WebSocketMock.CLOSED;
-    client.connection?.onclose?.(new CloseEvent('close'));
-  });
-
-  test('WSClient disconnect notifies close', () => {
-    const client = new WSClient({
-      url: 'ws://test.com',
-      useJson: false,
-      retryInterval: (n) => 2 * n,
-      retry: false,
-      maxRetries: 3,
-    });
-
-    client.connect();
-
-    client.subscribe(() => ({
-      onClose: (e) => {
-        expect(e.type).toBe('close');
-      },
-    }));
-
-    client.connection.readyState = WebSocketMock.OPEN;
-    client.connection?.onopen?.(new Event('mockopen'));
-    client.connection.readyState = WebSocketMock.CLOSED;
     client.disconnect();
   });
 
@@ -263,9 +217,6 @@ describe('Direct WSClient Interface', () => {
 
     const oldConnection = client.connection;
 
-    client.connection.readyState = WebSocketMock.OPEN;
-    client.connection?.onopen?.(new Event('mockopen'));
-    client.connection.readyState = WebSocketMock.CLOSED;
     client.disconnect();
 
     vi.advanceTimersByTime(1000);
@@ -293,13 +244,11 @@ describe('Direct WSClient Interface', () => {
       },
     }));
 
-    client.connection.readyState = WebSocketMock.OPEN;
-    client.connection?.onopen?.(new Event('mockopen'));
-    client.connection.readyState = WebSocketMock.CLOSED;
     client.disconnectManually();
 
     vi.advanceTimersByTime(1000);
 
+    expect(client.isConnected).toBe(false);
     expect(client.connection).toBeNull();
     vi.useRealTimers();
   });

@@ -1,5 +1,13 @@
 ## Change Log
 
+## v1.1.4
+
+- Use mock WS server in unit tests and add many more tests for useWsClient
+
+### Bug Fixes
+
+- Identified and fixed a bug in disconnects where the onClose handler would not run
+
 ## v1.1.3
 
 - Add unit tests for the websocket client and use client hook

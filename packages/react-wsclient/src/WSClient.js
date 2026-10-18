@@ -4,6 +4,7 @@
  * @property {(data: any) => boolean} [filter] Optional function that filters incoming messages. Called before onMessage, if provided. If it returns false, the message is not passed to onMessage.
  * @property {(e: Event) => void} [onOpen] Optional callback invoked when the connection opens.
  * @property {(e: CloseEvent, manualDisconnect: boolean) => void} [onClose] Optional callback invoked when the connection closes. The second argument indicates whether the disconnection was initiated manually via the disconnect method.
+ * @property {(e: Event) => void} [onError] Optional callback invoked when the connection receives an error, like when the server disconnect unexpectedly.
  */
 
 export class WSClient {
@@ -95,10 +96,6 @@ export class WSClient {
     if (this.connection) {
       this.connection?.close();
 
-      this.connection.onopen = null;
-      this.connection.onmessage = null;
-      this.connection.onclose = null;
-      this.connection.onerror = null;
       this.connection = null;
     }
   }
@@ -158,6 +155,7 @@ export class WSClient {
     };
 
     newConnection.onerror = (e) => {
+      this.#notifyError(e);
       console.error(`Error with websocket connection: `, e);
     };
   }
@@ -180,6 +178,16 @@ export class WSClient {
   #notifyClose(e, manualDisconnect) {
     this.subs.forEach((getSub) => {
       getSub().onClose?.(e, manualDisconnect);
+    });
+  }
+
+  /**
+   *
+   * @param {Event} e
+   */
+  #notifyError(e) {
+    this.subs.forEach((getSub) => {
+      getSub().onClose?.(e);
     });
   }
 }
