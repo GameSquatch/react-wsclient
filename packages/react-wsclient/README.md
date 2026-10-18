@@ -40,7 +40,7 @@ const App = () => {
   const { sendMessage } = useWsClient({
     onMessage: (data) => {
       setResponse(data.content);
-    }
+    },
   });
 
   const send = () => {
@@ -58,10 +58,11 @@ const App = () => {
 
 ## Features
 
-- Multiple connections possible using multiple `WSClientProvider`s
+- Dependency-free
+- Multiple connections using multiple `WSClientProvider`s
 - Retry logic when connections from the server drop
 - Filtering prop allows per-hook message "channels"
-- JSON parsing for messages containing JSON strings - you can also opt out of JSON parsing with one flag on the provider
+- JSON parsing for messages containing JSON strings - you can also opt out of JSON parsing with an option parameter
 - Works on React 16.8 and higher
 
 ## API
@@ -115,7 +116,7 @@ This hook will subscribe to the WS client provided by the `WSClientProvider` and
     },
     filter: (data) => {
       return data.room === 'channel-abc';
-    }
+    },
   });
   ```
 
@@ -145,11 +146,11 @@ An object containing:
 
 - **disconnect** `() => void`:
 
-  A function with no arguments that will close the connection without attempting retries. It will still call the `onClose` callback provided to this hook but will pass `true` to the second argument.
+  A function with no arguments that will close the connection without attempting retries. It will still call the `onClose` callback provided to this hook.
 
 ## Batch Safety
 
-Websocket message events can occur very rapidly, and React's state update system [uses batching](https://react.dev/learn/queueing-a-series-of-state-updates). When using this websocket library, you always have to keep this in mind, since it does not force the use of `flushSync`, which ignores the batching system and makes state updates synchronous. What this means for you is that you have to be aware of how you update states within the `onMessage` callback. All you have to know is that when you set state in this callback, that state may not be updated by the time the next `onMessage` call occurs. You can largely ignore this by using a function in the state setters for React, or the equivalent in your state management library of choice:
+Websocket message events can occur very rapidly, and React's state update system [uses batching](https://react.dev/learn/queueing-a-series-of-state-updates). When using this websocket library, you always have to keep this in mind, since it does not force the use of `flushSync`, which ignores the batching system and makes state updates synchronous. What this means for you is that you have to be aware of how you update states within the `onMessage` callback. All you have to know is that when you set state in this callback, that state may not be updated by the time the next `onMessage` call occurs. You can largely ignore this by using a function in the state setters for React, or the equivalent in your state management library of choice. An example:
 
 ```jsx
 const ChatThread = () => {
@@ -162,7 +163,7 @@ const ChatThread = () => {
 
       // Do this instead
       setMessages((currentMessages) => [...currentMessages, chatMessage]);
-    }
+    },
   });
 
   return (
@@ -175,4 +176,40 @@ const ChatThread = () => {
 };
 ```
 
-The only other time you'll have to be aware of this nuance is if you use state values outside of setters, like in other calculations or conditional statements. In those cases, you may have to use `flushSync` when updating state in the `onMessage` callback. If you only need the most recent message in your state, you are completely fine to use state setters even without the function-based argument that React uses.
+The only other time you'll have to be aware of this nuance is if you use state values outside of setters, like in other calculations or conditional statements. In those cases, you may have to use `flushSync` yourself or track values with `useRef`. If you only need the most recent message in your state, you are completely fine to use state setters even without the function-based argument that React uses. An example:
+
+```jsx
+const ChatThread = () => {
+  const [messages, setMessages] = useState([]);
+  const [receivedMessageCount, setReceivedMessageCount] = useState(0);
+  const messageCountRef = useRef(0);
+
+  useWSClient({
+    onMessage: (chatMessage) => {
+      // This may not work if messages are rapid, due to React's state batching
+      setReceivedMessageCount((current) => current + 1);
+      // Using state value outside of setter
+      if (receivedMessageCount >= 5) {
+        return;
+      }
+
+      // Alternative
+      messageCountRef.current += 1;
+      // Value guaranteed to be updated by the next message event
+      if (messageCountRef.current >= 5) {
+        return;
+      }
+
+      setMessages((currentMessages) => [...currentMessages, chatMessage]);
+    },
+  });
+
+  return (
+    <div className="chat-thread">
+      {messages.map((message) => (
+        <MessageBubble key={message.id} messageData={message} />
+      ))}
+    </div>
+  );
+};
+```
