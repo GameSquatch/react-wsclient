@@ -4,17 +4,22 @@ import { useCallback, useContext, useEffect, useRef } from 'react';
 import { WSClientContext } from './WSClientContext';
 import { WSClient } from './WSClient';
 
+/** @import WSClientProvider from './WSClientProvider' */
+/** @import { Options } from './WSClient' */
+
 /**
  * @typedef {object} UseWsClientReturn
- * @property {(data: string | object) => void} sendMessage A stable function that sends a string message over the websocket.
+ * @property {(data: string | object) => void} sendMessage A stable function that sends data as a string over the websocket.
  * @property {() => boolean} isConnected A getter that returns whether the client is currently connected.
  * @property {() => void} reconnect A function to reconnect to the url given to the provider. If already connected, this will do nothing.
  * @property {() => void} disconnect A function to manually disconnect without triggering the retry process. This will still trigger the `onClose` callback.
  */
 
 /**
- *
- * @param {import('./WSClient').Options} options
+ * A hook to access the events from a single {@link WSClientProvider} connection. Multiple
+ * hooks can be used under one client provider, and "channels" can be implemented by providing
+ * unique filters in this hook's {@link Options} parameter for each hook instance.
+ * @param {Options} options
  * @returns {UseWsClientReturn}
  */
 export const useWsClient = (options) => {
@@ -28,7 +33,7 @@ export const useWsClient = (options) => {
       const stringData = typeof data === 'string' ? data : JSON.stringify(data);
       wsClient.send(stringData);
     },
-    [wsClient],
+    [wsClient]
   );
 
   useEffect(() => {

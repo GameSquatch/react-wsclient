@@ -22,7 +22,7 @@ const server = setupServer(
       const data = e.data;
       client.send(data); // echo back the same message
     });
-  }),
+  })
 );
 
 beforeAll(() => {
@@ -34,10 +34,13 @@ afterEach(() => {
 });
 afterAll(() => server.close());
 
-const TestComponent = () => {
+const TestComponent = ({ filter }) => {
   const [message, setMessage] = useState('');
   const { sendMessage, isConnected, disconnect, reconnect } = useWsClient({
     filter: (data) => {
+      if (filter) {
+        return filter(data);
+      }
       if (typeof data === 'string') {
         return data === 'Hello there';
       }
@@ -90,7 +93,7 @@ describe('useWsClient', () => {
     render(
       <WSClientProvider url="ws://test.com">
         <TestComponent />
-      </WSClientProvider>,
+      </WSClientProvider>
     );
 
     const statusText = await screen.findByText('Status: connected');
@@ -102,7 +105,7 @@ describe('useWsClient', () => {
     render(
       <WSClientProvider url="ws://test.com" useJson={false}>
         <TestComponent />
-      </WSClientProvider>,
+      </WSClientProvider>
     );
 
     const statusText = await screen.findByText('Status: connected');
@@ -117,7 +120,7 @@ describe('useWsClient', () => {
     render(
       <WSClientProvider url="ws://test.com" useJson={false}>
         <TestComponent />
-      </WSClientProvider>,
+      </WSClientProvider>
     );
 
     const statusText = await screen.findByText('Status: connected');
@@ -135,7 +138,7 @@ describe('useWsClient', () => {
     render(
       <WSClientProvider url="ws://test.com" useJson={false}>
         <TestComponent />
-      </WSClientProvider>,
+      </WSClientProvider>
     );
 
     const statusText = await screen.findByText('Status: connected');
@@ -153,7 +156,7 @@ describe('useWsClient', () => {
     render(
       <WSClientProvider url="ws://test.com" useJson={true}>
         <TestComponent />
-      </WSClientProvider>,
+      </WSClientProvider>
     );
 
     const statusText = await screen.findByText('Status: connected');
@@ -168,7 +171,7 @@ describe('useWsClient', () => {
     render(
       <WSClientProvider url="ws://test.com" retry={false}>
         <TestComponent />
-      </WSClientProvider>,
+      </WSClientProvider>
     );
 
     let statusText = await screen.findByText('Status: connected');
@@ -183,7 +186,7 @@ describe('useWsClient', () => {
     render(
       <WSClientProvider url="ws://test.com" retry={false}>
         <TestComponent />
-      </WSClientProvider>,
+      </WSClientProvider>
     );
 
     let statusText = await screen.findByText('Status: connected');
@@ -200,14 +203,76 @@ describe('useWsClient', () => {
     render(
       <WSClientProvider url="ws://test.com" retry retryInterval={(n) => 0} maxRetries={1}>
         <TestComponent />
-      </WSClientProvider>,
+      </WSClientProvider>
     );
 
-    let statusText = await screen.findByText('Status: connected');
+    const statusText = await screen.findByText('Status: connected');
     expect(statusText).toBeInTheDocument();
     firstWsClient?.close();
 
     await waitFor(() => expect(connectionCount).toBe(2));
     expect(connectionCount).toBe(2);
+  });
+
+  test('Multiple providers work independently', async () => {
+    const user = userEvent.setup();
+    render(
+      <div>
+        <WSClientProvider url="ws://test.com" useJson={false}>
+          <TestComponent />
+        </WSClientProvider>
+        <WSClientProvider url="ws://test.com" useJson={false}>
+          <TestComponent />
+        </WSClientProvider>
+      </div>
+    );
+
+    const statusTexts = await screen.findAllByText('Status: connected');
+    expect(statusTexts.length).toBe(2);
+    const sends = screen.getAllByText('Send');
+    await user.click(sends[0]);
+    let messageTexts = await screen.findAllByText('Hello there');
+    expect(messageTexts.length).toBe(1);
+    await user.click(sends[1]);
+    messageTexts = await screen.findAllByText('Hello there');
+    expect(messageTexts.length).toBe(2);
+  });
+
+  test('Multiple use client hooks work on same connection', async () => {
+    const user = userEvent.setup();
+    render(
+      <div>
+        <WSClientProvider url="ws://test.com" useJson={false}>
+          <TestComponent />
+          <TestComponent />
+        </WSClientProvider>
+      </div>
+    );
+
+    const statusTexts = await screen.findAllByText('Status: connected');
+    expect(statusTexts.length).toBe(2);
+    const sends = screen.getAllByText('Send');
+    await user.click(sends[0]);
+    const messageTexts = await screen.findAllByText('Hello there');
+    expect(messageTexts.length).toBe(2);
+  });
+
+  test('Multiple use client hooks one filtered, one not', async () => {
+    const user = userEvent.setup();
+    render(
+      <div>
+        <WSClientProvider url="ws://test.com" useJson={false}>
+          <TestComponent filter={(data) => data === 'Hello filtered'} />
+          <TestComponent />
+        </WSClientProvider>
+      </div>
+    );
+
+    const statusTexts = await screen.findAllByText('Status: connected');
+    expect(statusTexts.length).toBe(2);
+    const sends = screen.getAllByText('Send');
+    await user.click(sends[0]);
+    const messageTexts = await screen.findAllByText('Hello there');
+    expect(messageTexts.length).toBe(1);
   });
 });
