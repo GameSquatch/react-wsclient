@@ -124,7 +124,7 @@ This hook will subscribe to the WS client provided by the `WSClientProvider` and
 
   Callback invoked when the WebSocket ready state is in `OPEN`. It receives the raw `Event` from `WebSocket.onopen` as its only argument.
 
-- **onClose** (optional) `(event) => void`:
+- **onClose** (optional) `(event, manualDisconnect) => void`:
 
   Callback invoked when the WebSocket is closed. It receives the raw `CloseEvent` from `WebSocket.onclose` and a flag that indicates whether it was manually closed by the `disconnect` function returned from this hook.
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useContext, useEffect, useRef } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { WSClientContext } from './WSClientContext';
 import { WSClient } from './WSClient';
 
@@ -50,6 +50,29 @@ export const useWsClient = (options) => {
     reconnect: () => wsClient.connect(),
     disconnect: () => wsClient.disconnectManually(),
   };
+};
+
+/**
+ * A hook to obtain a reactive connection status for a client provided by the provider.
+ * @returns {WSClient['connectionStatus']} The connection status of the client.
+ */
+export const useWsConnectionStatus = () => {
+  const wsClient = useClientContext();
+  const [connectionStatus, setConnectionStatus] = useState(wsClient.isConnected);
+
+  useEffect(() => {
+    const unsubscribe = wsClient.subscribe(() => ({
+      onStatusChange: (status) => {
+        setConnectionStatus(status);
+      },
+    }));
+
+    return () => {
+      unsubscribe();
+    };
+  }, [wsClient]);
+
+  return connectionStatus;
 };
 
 /** @type {() => NonNullable<WSClient>} */
