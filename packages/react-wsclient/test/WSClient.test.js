@@ -3,6 +3,7 @@ import { WSClient } from '../src/WSClient';
 import { vi } from 'vitest';
 import { ws } from 'msw';
 import { setupServer } from 'msw/node';
+import { wait } from '@testing-library/user-event/dist/cjs/utils/index.js';
 
 const wsApi = ws.link('ws://test.com');
 
@@ -12,7 +13,7 @@ const server = setupServer(
       const data = e.data;
       client.send(data);
     });
-  }),
+  })
 );
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
@@ -196,7 +197,7 @@ describe('Direct WSClient Interface', () => {
     client.disconnect();
   });
 
-  test('WSClient retries on disconnect', () => {
+  test('WSClient retries on disconnect', async () => {
     vi.useFakeTimers();
 
     const client = new WSClient({
@@ -219,13 +220,13 @@ describe('Direct WSClient Interface', () => {
 
     client.disconnect();
 
-    vi.advanceTimersByTime(1000);
+    await vi.advanceTimersByTimeAsync(1000);
 
     expect(client.connection).not.toBe(oldConnection);
     vi.useRealTimers();
   });
 
-  test('WSClient does not retry on manual disconnect', () => {
+  test('WSClient does not retry on manual disconnect', async () => {
     vi.useFakeTimers();
 
     const client = new WSClient({
@@ -246,9 +247,41 @@ describe('Direct WSClient Interface', () => {
 
     client.disconnectManually();
 
-    vi.advanceTimersByTime(1000);
+    await vi.advanceTimersByTimeAsync(1000);
 
-    expect(client.isConnected).toBe(false);
+    expect(client.connectionStatus).toBe('closed');
+    expect(client.connection).toBeNull();
+    vi.useRealTimers();
+  });
+
+  test('WSClient does not reconnect after disconnecting during retry', async () => {
+    vi.useFakeTimers();
+
+    const client = new WSClient({
+      url: 'ws://test.com',
+      useJson: false,
+      retryInterval: (n) => 1000 * n,
+      retry: true,
+      maxRetries: 1,
+    });
+
+    client.connect();
+
+    client.subscribe(() => ({
+      onStatusChange: (status) => {
+        if (status === 'retrying') {
+          expect(client.retryTimer).not.toBeNull();
+          client.disconnectManually();
+          expect(client.connectionStatus).toBe('closed');
+        }
+      },
+    }));
+
+    client.disconnect();
+    expect(client.connectionStatus).toBe('closing');
+    await vi.advanceTimersByTimeAsync(1200);
+    expect(client.retryTimer).toBeNull();
+
     expect(client.connection).toBeNull();
     vi.useRealTimers();
   });
@@ -269,5 +302,38 @@ describe('Direct WSClient Interface', () => {
     expect(client.subs.length).toBe(1);
     unsubscribe();
     expect(client.subs.length).toBe(0);
+  });
+
+  test('Reconnect attempt when already connected does nothing', async () => {
+    const client = new WSClient({
+      url: 'ws://test.com',
+      useJson: false,
+      retry: false,
+    });
+
+    client.connect();
+    const oldConnection = client.connection;
+    expect(oldConnection).not.toBeNull();
+
+    client.subscribe(() => ({
+      onOpen: () => {
+        client.connect();
+        expect(client.connection).toBe(oldConnection);
+      },
+    }));
+  });
+
+  test('Reconnect attempt while connecting does nothing', async () => {
+    const client = new WSClient({
+      url: 'ws://test.com',
+      useJson: false,
+      retry: false,
+    });
+
+    client.connect();
+    const oldConnection = client.connection;
+    expect(oldConnection).not.toBeNull();
+    client.connect();
+    expect(client.connection).toBe(oldConnection);
   });
 });

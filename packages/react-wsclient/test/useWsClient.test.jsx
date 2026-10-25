@@ -1,4 +1,4 @@
-import { useWsClient } from '../src/useWsClient';
+import { useWsClient, useWsConnectionStatus } from '../src/useWsClient';
 import { render, screen, waitFor } from '@testing-library/react';
 import WSClientProvider from '../src/WSClientProvider';
 import '@testing-library/jest-dom';
@@ -36,8 +36,8 @@ afterAll(() => server.close());
 
 const TestComponent = ({ filter }) => {
   const [message, setMessage] = useState('');
-  const { sendMessage, isConnected, disconnect, reconnect } = useWsClient({
-    filter: (data) => {
+  const { sendMessage, disconnect, reconnect } = useWsClient({
+    filter: (/** @type {string | { msg: string }} */ data) => {
       if (filter) {
         return filter(data);
       }
@@ -46,9 +46,6 @@ const TestComponent = ({ filter }) => {
       }
       return data.msg === 'Hello JSON';
     },
-    onOpen: (e) => {
-      setConnected(isConnected());
-    },
     onMessage: (data) => {
       if (typeof data === 'string') {
         setMessage(data);
@@ -56,14 +53,11 @@ const TestComponent = ({ filter }) => {
         setMessage(data.msg);
       }
     },
-    onClose: () => {
-      setConnected(isConnected());
-    },
-    onError: () => {
-      setConnected(isConnected());
+    onStatusChange: (status) => {
+      setConnected(status === 'open');
     },
   });
-  const [connected, setConnected] = useState(isConnected());
+  const [connected, setConnected] = useState(false);
 
   return (
     <div>
@@ -86,6 +80,12 @@ const TestComponent = ({ filter }) => {
       <p>{message}</p>
     </div>
   );
+};
+
+const ConnectionStatusComponent = () => {
+  const connectionStatus = useWsConnectionStatus();
+
+  return <p>Connection: {connectionStatus}</p>;
 };
 
 describe('useWsClient', () => {
@@ -199,9 +199,24 @@ describe('useWsClient', () => {
     expect(statusText).toBeInTheDocument();
   });
 
+  test('Reconnect will not create new connection when already open', async () => {
+    const user = userEvent.setup();
+    render(
+      <WSClientProvider url="ws://test.com" retry={false}>
+        <TestComponent />
+      </WSClientProvider>
+    );
+
+    let statusText = await screen.findByText('Status: connected');
+    expect(statusText).toBeInTheDocument();
+    await user.click(screen.getByText('Reconnect'));
+    statusText = await screen.findByText('Status: connected');
+    expect(statusText).toBeInTheDocument();
+  });
+
   test('Client will retry connection upon disconnect', async () => {
     render(
-      <WSClientProvider url="ws://test.com" retry retryInterval={(n) => 0} maxRetries={1}>
+      <WSClientProvider url="ws://test.com" retry retryInterval={() => 0} maxRetries={1}>
         <TestComponent />
       </WSClientProvider>
     );
@@ -274,5 +289,26 @@ describe('useWsClient', () => {
     await user.click(sends[0]);
     const messageTexts = await screen.findAllByText('Hello there');
     expect(messageTexts.length).toBe(1);
+  });
+});
+
+describe('useWsConnectionStatus', () => {
+  test('Reports connection status changes', async () => {
+    const user = userEvent.setup();
+    render(
+      <WSClientProvider url="ws://test.com" retry={false}>
+        <TestComponent />
+        <ConnectionStatusComponent />
+      </WSClientProvider>
+    );
+
+    expect(screen.getByText('Connection: connecting')).toBeInTheDocument();
+    expect(await screen.findByText('Connection: open')).toBeInTheDocument();
+
+    await user.click(screen.getByText('Disconnect'));
+    expect(await screen.findByText('Connection: closed')).toBeInTheDocument();
+
+    await user.click(screen.getByText('Reconnect'));
+    expect(await screen.findByText('Connection: open')).toBeInTheDocument();
   });
 });

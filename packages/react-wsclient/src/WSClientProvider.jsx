@@ -26,7 +26,7 @@ const WSClientProvider = ({ children, url, useJson = true, retry = true, retryIn
       retry,
       retryInterval: effectiveRetryInterval,
       maxRetries,
-      useJson
+      useJson,
     });
   }, [url, retry, retryInterval, maxRetries, useJson]);
 
@@ -34,7 +34,7 @@ const WSClientProvider = ({ children, url, useJson = true, retry = true, retryIn
     client.connect();
 
     return () => {
-      client.disconnect();
+      client.disconnectManually();
     };
   }, [client]);
 

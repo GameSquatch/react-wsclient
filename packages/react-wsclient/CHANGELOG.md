@@ -1,5 +1,23 @@
 ## Change Log
 
+## v1.2.0
+
+### Features
+
+- Added a new and reactive `useWsConnectionStatus` hook
+- Added `onStatusChange` and `onError` callback options to the `useWsClient` hook.
+- Generic types for message payload in the `filter` and `onMessage` callbacks
+- Updated README and demo app with new hook info
+
+### Fixes
+
+- Reconnect calls were not being ignored during connection or retry phases
+- Correct handling of manual disconnects during retries
+
+### Breaking
+
+- Removed `isConnected()` function returned from the `useWsClient` hook. Use the new hook or `onStatusChange` callback instead.
+
 ## v1.1.4
 
 - Use mock WS server in unit tests and add many more tests for useWsClient
