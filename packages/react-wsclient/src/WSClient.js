@@ -82,10 +82,6 @@ export class WSClient {
     this.#addListeners(this.connection);
   }
 
-  get isConnected() {
-    return this.connection?.readyState === WebSocket.OPEN;
-  }
-
   disconnect() {
     this.#disconnector();
   }
@@ -207,7 +203,7 @@ export class WSClient {
   #notifyStatusChange(newStatus) {
     this.connectionStatus = newStatus;
     this.subs.forEach((getSub) => {
-      getSub().onConnectionStatusChange?.(newStatus);
+      getSub().onStatusChange?.(newStatus);
     });
   }
 }

@@ -12,7 +12,7 @@ const server = setupServer(
       const data = e.data;
       client.send(data);
     });
-  }),
+  })
 );
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
@@ -248,7 +248,7 @@ describe('Direct WSClient Interface', () => {
 
     vi.advanceTimersByTime(1000);
 
-    expect(client.isConnected).toBe(false);
+    expect(client.connectionStatus).toBe('closing');
     expect(client.connection).toBeNull();
     vi.useRealTimers();
   });
