@@ -18,7 +18,8 @@ import { WSClient } from './WSClient';
  * A hook to access the events from a single {@link WSClientProvider} connection. Multiple
  * hooks can be used under one client provider, and "channels" can be implemented by providing
  * unique filters in this hook's {@link Options} parameter for each hook instance.
- * @param {Options} options
+ * @template {string | Record<string, unknown>} [TData=string]
+ * @param {Options<TData>} options
  * @returns {UseWsClientReturn}
  */
 export const useWsClient = (options) => {

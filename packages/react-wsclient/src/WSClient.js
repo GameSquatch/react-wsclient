@@ -1,7 +1,8 @@
 /**
+ * @template {string | Record<string, unknown>} [TData=string]
  * @typedef {object} Options
- * @property {(data: any) => void} [onMessage] Callback function that is called when a message is received from the server. The message is passed as an argument to the callback.
- * @property {(data: any) => boolean} [filter] Optional function that filters incoming messages. Called before onMessage, if provided. If it returns false, the message is not passed to onMessage.
+ * @property {(data: TData) => void} [onMessage] Callback function that is called when a message is received from the server. The message is passed as an argument to the callback.
+ * @property {(data: TData) => boolean} [filter] Optional function that filters incoming messages. Called before onMessage, if provided. If it returns false, the message is not passed to onMessage.
  * @property {(e: Event) => void} [onOpen] Optional callback invoked when the connection opens.
  * @property {(e: CloseEvent, manualDisconnect: boolean) => void} [onClose] Optional callback invoked when the connection closes. The second argument indicates whether the disconnection was initiated manually via the disconnect method.
  * @property {(e: Event) => void} [onError] Optional callback invoked when the connection receives an error, like when the server disconnect unexpectedly.
@@ -31,6 +32,8 @@ export class WSClient {
   maxRetries;
   /** @type {'closed' | 'connecting' | 'open' | 'closing' | 'retrying'} */
   connectionStatus = 'closed';
+  /** @type {null | number} */
+  retryTimer = null;
 
   /**
    * @param {object} options
@@ -74,7 +77,11 @@ export class WSClient {
 
   connect() {
     this.manualDisconnect = false;
-    if (this.connection !== null) {
+    if (
+      this.connectionStatus === 'connecting' ||
+      this.connection?.readyState === WebSocket.OPEN ||
+      this.retryTimer !== null
+    ) {
       return;
     }
     this.#notifyStatusChange('connecting');
@@ -93,10 +100,15 @@ export class WSClient {
 
   #disconnector() {
     this.#notifyStatusChange('closing');
-    if (this.connection) {
-      this.connection?.close();
+    if (this.retryTimer !== null) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = null;
+      this.#notifyStatusChange('closed');
+      return;
+    }
 
-      this.connection = null;
+    if (this.connection) {
+      this.connection.close();
     }
   }
 
@@ -146,20 +158,24 @@ export class WSClient {
       }
 
       if (this.retry && this.retryCount < this.maxRetries) {
-        this.#notifyStatusChange('retrying');
         this.retryCount += 1;
         const interval = this.retryInterval(this.retryCount);
 
-        window.setTimeout(() => {
+        this.retryTimer = window.setTimeout(() => {
           // User closes manually during retry process
+          this.retryTimer = null;
+
           if (this.manualDisconnect) {
             this.#notifyStatusChange('closed');
             return;
           }
 
+          this.#notifyStatusChange('connecting');
           this.connection = new WebSocket(this.url);
           this.#addListeners(this.connection);
         }, interval);
+
+        this.#notifyStatusChange('retrying');
       } else {
         this.#notifyStatusChange('closed');
       }
@@ -187,6 +203,7 @@ export class WSClient {
    * @param {boolean} manualDisconnect
    */
   #notifyClose(e, manualDisconnect) {
+    this.connection = null;
     this.subs.forEach((getSub) => {
       getSub().onClose?.(e, manualDisconnect);
     });
@@ -198,7 +215,7 @@ export class WSClient {
    */
   #notifyError(e) {
     this.subs.forEach((getSub) => {
-      getSub().onClose?.(e);
+      getSub().onError?.(e);
     });
   }
 

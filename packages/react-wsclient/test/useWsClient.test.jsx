@@ -37,7 +37,7 @@ afterAll(() => server.close());
 const TestComponent = ({ filter }) => {
   const [message, setMessage] = useState('');
   const { sendMessage, disconnect, reconnect } = useWsClient({
-    filter: (data) => {
+    filter: (/** @type {string | { msg: string }} */ data) => {
       if (filter) {
         return filter(data);
       }
@@ -193,6 +193,21 @@ describe('useWsClient', () => {
     expect(statusText).toBeInTheDocument();
     await user.click(screen.getByText('Disconnect'));
     statusText = await screen.findByText('Status: not connected');
+    expect(statusText).toBeInTheDocument();
+    await user.click(screen.getByText('Reconnect'));
+    statusText = await screen.findByText('Status: connected');
+    expect(statusText).toBeInTheDocument();
+  });
+
+  test('Reconnect will not create new connection when already open', async () => {
+    const user = userEvent.setup();
+    render(
+      <WSClientProvider url="ws://test.com" retry={false}>
+        <TestComponent />
+      </WSClientProvider>
+    );
+
+    let statusText = await screen.findByText('Status: connected');
     expect(statusText).toBeInTheDocument();
     await user.click(screen.getByText('Reconnect'));
     statusText = await screen.findByText('Status: connected');
