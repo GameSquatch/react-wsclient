@@ -151,6 +151,12 @@ export class WSClient {
         const interval = this.retryInterval(this.retryCount);
 
         window.setTimeout(() => {
+          // User closes manually during retry process
+          if (this.manualDisconnect) {
+            this.#notifyStatusChange('closed');
+            return;
+          }
+
           this.connection = new WebSocket(this.url);
           this.#addListeners(this.connection);
         }, interval);
