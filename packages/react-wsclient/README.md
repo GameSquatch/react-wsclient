@@ -124,9 +124,17 @@ This hook will subscribe to the WS client provided by the `WSClientProvider` and
 
   Callback invoked when the WebSocket ready state is in `OPEN`. It receives the raw `Event` from `WebSocket.onopen` as its only argument.
 
-- **onClose** (optional) `(event) => void`:
+- **onClose** (optional) `(event, manualDisconnect) => void`:
 
   Callback invoked when the WebSocket is closed. It receives the raw `CloseEvent` from `WebSocket.onclose` and a flag that indicates whether it was manually closed by the `disconnect` function returned from this hook.
+
+- **onStatusChange** (optional) `(newStatus) => void`:
+
+  Callback invoked when the WebSocket's connection status changes. The value will start as `closed` and immediately transition into `connecting`. When connected the status will be `open`. Upon an unexpected disconnect, the status will be `closed`, but if manually disconnected, the status will first enter into `closing` before `closed`. If the retry process starts, the status will enter into a `retrying` state until it either connects again or closes.
+
+- **onError** (optional) `(event) =>  void`:
+
+  Callback invoked whenever the websocket experiences an error. Usually followed immediately by a close event.
 
 #### Returns
 
@@ -136,10 +144,6 @@ An object containing:
 
   A function that takes a string or [`JSON.stringify`-supported object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#description) as an argument and calls `WebSocket.send` with that data. If the connection is not yet open, this will queue the message up that will be sent when the connection does open.
 
-- **isConnected** `() => boolean`:
-
-  A getter function that checks the ready state of the WebSocket and returns `true` when that state is `OPEN`. This function returns the current connection state - i.e. it is not reactive.
-
 - **reconnect** `() => void`:
 
   A function with no arguments that will reconnect the WebSocket to the url provided to the provider's `url` prop. If the connection is already open, this will do nothing.
@@ -147,6 +151,31 @@ An object containing:
 - **disconnect** `() => void`:
 
   A function with no arguments that will close the connection without attempting retries. It will still call the `onClose` callback provided to this hook.
+
+### useWsConnectionStatus
+
+A reactive enum for connection status that replaces the old `isConnected()` function. The possible values returned from this hook are: `closed`, `connecting`, `open`, `closing`, and `retrying`. You also have access to the status change event as an event handler passed to `useWsClient`, in case you wanted to set this state your own way.
+
+Example:
+
+```jsx
+const SocketStatus = () => {
+  const status = useWsConnectionStatus();
+
+  switch (status) {
+    case 'closed':
+      return 'Closed';
+    case 'connecting':
+      return 'Connecting';
+    case 'open':
+      return 'Open';
+    case 'closing':
+      return 'Closing';
+    case 'retrying':
+      return 'Retrying';
+  }
+};
+```
 
 ## Batch Safety
 

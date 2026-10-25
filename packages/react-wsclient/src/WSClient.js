@@ -5,6 +5,7 @@
  * @property {(e: Event) => void} [onOpen] Optional callback invoked when the connection opens.
  * @property {(e: CloseEvent, manualDisconnect: boolean) => void} [onClose] Optional callback invoked when the connection closes. The second argument indicates whether the disconnection was initiated manually via the disconnect method.
  * @property {(e: Event) => void} [onError] Optional callback invoked when the connection receives an error, like when the server disconnect unexpectedly.
+ * @property {(newStatus: WSClient['connectionStatus']) => void} [onStatusChange] Optional callback invoked when the status of the connection changes.
  */
 
 export class WSClient {
@@ -28,6 +29,8 @@ export class WSClient {
   retryCount = 0;
   /** @type {number} */
   maxRetries;
+  /** @type {'closed' | 'connecting' | 'open' | 'closing' | 'retrying'} */
+  connectionStatus = 'closed';
 
   /**
    * @param {object} options
@@ -74,13 +77,9 @@ export class WSClient {
     if (this.connection !== null) {
       return;
     }
-
+    this.#notifyStatusChange('connecting');
     this.connection = new WebSocket(this.url);
     this.#addListeners(this.connection);
-  }
-
-  get isConnected() {
-    return this.connection?.readyState === WebSocket.OPEN;
   }
 
   disconnect() {
@@ -93,6 +92,7 @@ export class WSClient {
   }
 
   #disconnector() {
+    this.#notifyStatusChange('closing');
     if (this.connection) {
       this.connection?.close();
 
@@ -101,12 +101,13 @@ export class WSClient {
   }
 
   /**
-   *
+   * Adds listeners to a websocket instance
    * @param {WebSocket} newConnection
    */
   #addListeners(newConnection) {
     newConnection.onopen = (e) => {
       this.#notifyOpen(e);
+      this.#notifyStatusChange('open');
       this.retryCount = 0;
 
       let msg = this.messageQueue.shift();
@@ -140,10 +141,12 @@ export class WSClient {
     newConnection.onclose = (e) => {
       this.#notifyClose(e, this.manualDisconnect);
       if (this.manualDisconnect) {
+        this.#notifyStatusChange('closed');
         return;
       }
 
       if (this.retry && this.retryCount < this.maxRetries) {
+        this.#notifyStatusChange('retrying');
         this.retryCount += 1;
         const interval = this.retryInterval(this.retryCount);
 
@@ -151,6 +154,8 @@ export class WSClient {
           this.connection = new WebSocket(this.url);
           this.#addListeners(this.connection);
         }, interval);
+      } else {
+        this.#notifyStatusChange('closed');
       }
     };
 
@@ -161,7 +166,7 @@ export class WSClient {
   }
 
   /**
-   *
+   * Notify subscribers of an open event.
    * @param {Event} e
    */
   #notifyOpen(e) {
@@ -171,7 +176,7 @@ export class WSClient {
   }
 
   /**
-   *
+   * Notify subscribers of a close event.
    * @param {CloseEvent} e
    * @param {boolean} manualDisconnect
    */
@@ -182,12 +187,23 @@ export class WSClient {
   }
 
   /**
-   *
+   * Notify subscribers of an error event.
    * @param {Event} e
    */
   #notifyError(e) {
     this.subs.forEach((getSub) => {
       getSub().onClose?.(e);
+    });
+  }
+
+  /**
+   * Notify subscribers of a status change.
+   * @param {WSClient['connectionStatus']} newStatus
+   */
+  #notifyStatusChange(newStatus) {
+    this.connectionStatus = newStatus;
+    this.subs.forEach((getSub) => {
+      getSub().onStatusChange?.(newStatus);
     });
   }
 }

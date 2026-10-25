@@ -1,5 +1,16 @@
 ## Change Log
 
+## v1.2.0
+
+### Features
+
+- Added a new and reactive `useWsConnectionStatus` hook
+- Added `onStatusChange` and `onError` callback options to the `useWsClient` hook.
+
+### Breaking
+
+- Removed `isConnected()` function returned from the `useWsClient` hook. Use the new hook or `onStatusChange` callback instead.
+
 ## v1.1.4
 
 - Use mock WS server in unit tests and add many more tests for useWsClient

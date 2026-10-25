@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useContext, useEffect, useRef } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { WSClientContext } from './WSClientContext';
 import { WSClient } from './WSClient';
 
@@ -10,7 +10,6 @@ import { WSClient } from './WSClient';
 /**
  * @typedef {object} UseWsClientReturn
  * @property {(data: string | object) => void} sendMessage A stable function that sends data as a string over the websocket.
- * @property {() => boolean} isConnected A getter that returns whether the client is currently connected.
  * @property {() => void} reconnect A function to reconnect to the url given to the provider. If already connected, this will do nothing.
  * @property {() => void} disconnect A function to manually disconnect without triggering the retry process. This will still trigger the `onClose` callback.
  */
@@ -46,10 +45,32 @@ export const useWsClient = (options) => {
 
   return {
     sendMessage,
-    isConnected: () => wsClient.isConnected,
     reconnect: () => wsClient.connect(),
     disconnect: () => wsClient.disconnectManually(),
   };
+};
+
+/**
+ * A hook to obtain a reactive connection status for a client provided by the provider.
+ * @returns {WSClient['connectionStatus']} The connection status of the client.
+ */
+export const useWsConnectionStatus = () => {
+  const wsClient = useClientContext();
+  const [connectionStatus, setConnectionStatus] = useState(wsClient.connectionStatus);
+
+  useEffect(() => {
+    const unsubscribe = wsClient.subscribe(() => ({
+      onStatusChange: (status) => {
+        setConnectionStatus(status);
+      },
+    }));
+
+    return () => {
+      unsubscribe();
+    };
+  }, [wsClient]);
+
+  return connectionStatus;
 };
 
 /** @type {() => NonNullable<WSClient>} */
